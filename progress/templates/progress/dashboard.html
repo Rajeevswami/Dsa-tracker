@@ -1,0 +1,106 @@
+{% extends "progress/base.html" %}
+{% block title %}Dashboard - DSA Tracker{% endblock %}
+{% block content %}
+
+<div class="row mb-4">
+    <div class="col-md-8">
+        <h4>Overall Progress</h4>
+        <div class="progress">
+            <div class="progress-bar bg-success" role="progressbar" style="width: {{ progress_pct }}%;">
+                {{ progress_pct }}%
+            </div>
+        </div>
+        <small class="text-muted">{{ solved_count }} / {{ total_problems }} problems solved</small>
+    </div>
+    <div class="col-md-4">
+        <form method="get" class="d-flex gap-2">
+            <select name="status" class="form-select form-select-sm" onchange="this.form.submit()">
+                <option value="">All Status</option>
+                {% for value, label in status_choices %}
+                    <option value="{{ value }}" {% if status_filter == value %}selected{% endif %}>{{ label }}</option>
+                {% endfor %}
+            </select>
+            <select name="difficulty" class="form-select form-select-sm" onchange="this.form.submit()">
+                <option value="">All Difficulty</option>
+                {% for value, label in difficulty_choices %}
+                    <option value="{{ value }}" {% if difficulty_filter == value %}selected{% endif %}>{{ label }}</option>
+                {% endfor %}
+            </select>
+        </form>
+    </div>
+</div>
+
+{% if due_for_revision %}
+<div class="alert alert-warning">
+    <strong>⏰ Due for revision today/overdue:</strong>
+    {% for entry in due_for_revision %}
+        <span class="badge bg-secondary">{{ entry.problem.name }}</span>
+    {% endfor %}
+</div>
+{% endif %}
+
+{% for group in topic_data %}
+<div class="card mb-3 shadow-sm">
+    <div class="card-header bg-white">
+        <strong>{{ group.topic }}</strong>
+    </div>
+    <div class="table-responsive">
+        <table class="table table-hover mb-0 align-middle">
+            <thead class="table-light">
+                <tr>
+                    <th>Problem</th>
+                    <th>Pattern</th>
+                    <th>Difficulty</th>
+                    <th>Status</th>
+                    <th>Next Revision</th>
+                    <th>Actions</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for row in group.rows %}
+                <tr>
+                    <td>
+                        {% if row.problem.leetcode_url %}
+                            <a href="{{ row.problem.leetcode_url }}" target="_blank">{{ row.problem.name }}</a>
+                        {% else %}
+                            {{ row.problem.name }}
+                        {% endif %}
+                    </td>
+                    <td><span class="badge bg-light text-dark">{{ row.problem.pattern }}</span></td>
+                    <td>
+                        {% if row.problem.difficulty == "EASY" %}
+                            <span class="badge bg-success">Easy</span>
+                        {% elif row.problem.difficulty == "MEDIUM" %}
+                            <span class="badge bg-warning text-dark">Medium</span>
+                        {% else %}
+                            <span class="badge bg-danger">Hard</span>
+                        {% endif %}
+                    </td>
+                    <td>
+                        <span class="badge status-badge
+                            {% if row.status == 'SOLVED' %}bg-success
+                            {% elif row.status == 'ATTEMPTED' %}bg-info text-dark
+                            {% elif row.status == 'NEEDS_REVISION' %}bg-warning text-dark
+                            {% else %}bg-secondary{% endif %}">
+                            {{ row.entry.get_status_display|default:"Not Started" }}
+                        </span>
+                    </td>
+                    <td>{{ row.entry.next_revision_date|default:"—" }}</td>
+                    <td>
+                        <div class="btn-group btn-group-sm" role="group">
+                            <a href="{% url 'mark_status' row.problem.id 'ATTEMPTED' %}" class="btn btn-outline-info">Attempted</a>
+                            <a href="{% url 'mark_status' row.problem.id 'SOLVED' %}" class="btn btn-outline-success">Solved</a>
+                            <a href="{% url 'mark_status' row.problem.id 'NEEDS_REVISION' %}" class="btn btn-outline-warning">Revise</a>
+                        </div>
+                    </td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+</div>
+{% empty %}
+<p class="text-muted">No problems match this filter.</p>
+{% endfor %}
+
+{% endblock %}
